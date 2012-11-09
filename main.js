@@ -29,7 +29,6 @@ var editViewSaveButtonElem = $('#btn-save');
 var editViewLockButtonElem = $('#btn-lock');
 var editViewTextAreaElem = $('#edit-view textarea');
 var editViewGearElem = $('.gear-img');
-var editViewUnderTextAreaElem = $('#under-text-area');
 var lastSavedElem = $('#last-saved');
 var flipContainerElem = $('#flip-container');
 var settingsViewBackElem = $('#btn-close');
@@ -52,7 +51,7 @@ function DataModel(fileName) {
 DataModel.prototype.reset = function() {
   this.lastSaved = null;
   this.password = null;
-  this.unencryptedData = null;
+  this.unencryptedData = '';
 };
 
 DataModel.prototype.save = function(callback) {

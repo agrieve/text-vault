@@ -25,6 +25,22 @@ img {
   right:0;
 }
 
+.vbox {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+
+.flex1 {
+  -webkit-box-flex: 1;
+  position:relative;
+}
+
+.bottom-align {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+}
+
 .title {
   font-size: 22pt;
   font-weight: bold;
@@ -54,11 +70,6 @@ img {
   text-align:center;
 }
 
-#edit-main {
-  height: 300px;
-  margin-bottom:-300px;
-}
-
 #settings-view {
   line-height: 1.5em;
 }
@@ -74,7 +85,7 @@ img {
   z-index:10;
 }
 
-.ios .lock-img {
+.lock-img {
   z-index:-10;
 }
 
@@ -84,14 +95,6 @@ img {
 
 .password-input {
   border: 1px solid #ccc;
-}
-
-#existing-password {
-  margin-top: 240px;
-}
-
-.ios #existing-password {
-  margin-top: 100px;
 }
 
 input[type=submit] {
@@ -130,15 +133,13 @@ input[type=submit] {
   }
 }
 
-
-textarea {
-  width: 100%;
-  height: 200px;
+#editor-textbox {
+  display: block;
 }
 
 .gear-container {
   position: absolute;
-  top: 4px;
+  top: -40px;
   right: 8px;
   outline: none;
 }
@@ -152,13 +153,16 @@ textarea {
   opacity:1;
 }
 
-.gear-img:hover,
-.gear-container:focus > .gear-img {
+.gear-img:hover {
   -webkit-transform: rotate(40deg);
 }
 
 .gear-container:active > .gear-img {
   -webkit-transform: rotate(40deg) scale(.8, .8);
+}
+
+.gear-container:focus {
+  -webkit-box-reflect: below -14px -webkit-gradient(linear, left top, left bottom, from(transparent), color-stop(0.5, transparent), to(white));
 }
 
 .gear-anim {
@@ -167,3 +171,6 @@ textarea {
   -webkit-transform: scale3d(.1,.1,1);
 }
 
+.settings-section {
+  margin-top: 16px;
+}
