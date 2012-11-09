@@ -32,7 +32,10 @@ img {
 
 .flex1 {
   -webkit-box-flex: 1;
-  position:relative;
+}
+
+.relative {
+  position: relative;
 }
 
 .bottom-align {
