@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hello World</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src=aes.js></script>
+</head>
+<body class="abs_stretch">
+  <div class="title">WebCrypt</div>
+  <img src="lock.svg" class="lock-img" style="display:none">
+  <div id="new-user" style="display:none">
+    <div>No data present.</div>
+    <form>
+      <div>Enter a password: <input id="new-password" class="password-input"></div>
+      <div><input type="submit" value="Done"></div>
+    </form>
+  </div>
+  <div id="existing-user" style="display:none">
+    <form>
+      <div class="lock-msg">Enter password to unlock.</div>
+      <input id="existing-password" class="password-input">
+      <div><input type="submit" value="Unlock"></div>
+    </form>
+  </div>
+  <div id="edit-view" style="display:none">
+    <div class="gear-container" tabindex="3">
+      <img src="gear.svg" class="gear-img">
+    </div>
+    <div id="flip-container">
+      <div id="edit-main" class="flip-face">
+        <textarea id="editor-textbox"></textarea>
+        <div id="under-text-area">
+          <div style="font-size:10pt">Last saved: <span id="last-saved"></span></div>
+          <div><button id="btn-save">Save now</button><button id="btn-lock">Lock</button></div>
+        </div>
+      </div>
+      <div id="settings-view" class="flip-face flip-back">
+        <div style="line-height: 2em">Auto-lock after: <select>
+            <option value="-1">never</option>
+            <option value="30">30 seconds</option>
+            <option value="60">1 minute</option>
+            <option value="120">2 minutes</option>
+            <option value="300">5 minutes</option>
+        </select></div>
+        <div style="margin-top:14px">Change Password</div>
+        <div>Old Password: <input class="password-input"></div>
+        <div>New Password: <input class="password-input"></div>
+        <div><button id="btn-close">Back</button></button></div>
+      </div>
+    </div>
+  </div>
+</body>
+<script src=main.js></script>
+</html>

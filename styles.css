@@ -1,0 +1,169 @@
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Required for things to stretch vertically. */
+  height: 100%;
+}
+
+body {
+  font-size: 13pt;
+  font-family: helvetica, arial;
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+.abs_stretch {
+  position: absolute;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
+}
+
+.title {
+  font-size: 22pt;
+  font-weight: bold;
+  text-align:center;
+  margin-bottom: 8px;
+}
+
+#flip-container {
+  -webkit-perspective: 1000;
+  -webkit-transform-style: preserve-3d;
+  -webkit-transition: all .5s linear;
+}
+
+.flip-face {
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-back {
+  -webkit-transform: rotateY(180deg);
+}
+
+.flipped {
+  -webkit-transform: rotateY(180deg);
+}
+
+#new-user, #existing-user, #settings-view {
+  text-align:center;
+}
+
+#edit-main {
+  height: 300px;
+  margin-bottom:-300px;
+}
+
+#settings-view {
+  line-height: 1.5em;
+}
+
+.lock-img {
+  width: 160px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: auto;
+  margin-top: 30px;
+  -webkit-transform: scale3d(1,1,1);
+  z-index:10;
+}
+
+.ios .lock-img {
+  z-index:-10;
+}
+
+.lock-msg {
+  margin-bottom: 10px;
+}
+
+.password-input {
+  border: 1px solid #ccc;
+}
+
+#existing-password {
+  margin-top: 240px;
+}
+
+.ios #existing-password {
+  margin-top: 100px;
+}
+
+input[type=submit] {
+  margin: 15px;
+}
+
+.wrong-pass-anim {
+  -webkit-animation-name: wrong-password-anim;
+  -webkit-animation-duration: .3s;
+  -webkit-animation-iteration-count: 1;
+  -webkit-animation-timing-function: linear;
+}
+
+@-webkit-keyframes wrong-password-anim {
+  0%   { -webkit-transform: scale3d(1,1,1); }
+  50%  { -webkit-transform: scale3d(.75,.75,.75); }
+  100% { -webkit-transform: scale3d(1,1,1); }
+}
+
+.correct-pass-anim {
+  -webkit-animation-name: correct-password-anim;
+  -webkit-animation-duration: .3s;
+  -webkit-animation-iteration-count: 1;
+  -webkit-animation-timing-function: linear;
+  z-index:10;
+}
+
+@-webkit-keyframes correct-password-anim {
+  0% {
+    -webkit-transform: scale3d(1,1,1);
+    opacity: 1;
+  }
+  100% {
+    -webkit-transform: scale3d(4,4,1);
+    opacity: 0;
+  }
+}
+
+
+textarea {
+  width: 100%;
+  height: 200px;
+}
+
+.gear-container {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  outline: none;
+}
+
+.gear-img {
+  width: 30px;
+  height: 30px;
+  padding:3px;
+  -webkit-transition: -webkit-transform .1s linear;
+  -webkit-transform: scale3d(1,1,1);
+  opacity:1;
+}
+
+.gear-img:hover,
+.gear-container:focus > .gear-img {
+  -webkit-transform: rotate(40deg);
+}
+
+.gear-container:active > .gear-img {
+  -webkit-transform: rotate(40deg) scale(.8, .8);
+}
+
+.gear-anim {
+  opacity:0;
+  -webkit-transition: opacity .4s linear;
+  -webkit-transform: scale3d(.1,.1,1);
+}
+

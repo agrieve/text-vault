@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "Text Vault",
+  "version": "1",
+  "minimum_chrome_version": "22",
+  "icons": {
+    "16": "lock.svg",
+    "32": "lock.svg",
+    "128": "lock.svg"
+  },
+  "app": {
+    "background": {
+      "scripts": ["background.js"]
+    }
+  },
+  "permissions": [
+    "storage"
+  ]
+}
