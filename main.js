@@ -11,6 +11,26 @@ function setVisible(elem, value) {
   elem.style.display = value ? '' : 'none';
 }
 
+function throttleDecorator(obj, func, delay) {
+  var timerId = null;
+  function unthrottled() {
+    window.clearTimeout(timerId)
+    timerId = null;
+    func.apply(obj, arguments);
+  }
+  function throttled() {
+    timerId = timerId || window.setTimeout(unthrottled, delay);
+  }
+  return [throttled, unthrottled];
+}
+
+function maybeCall(func) {
+  if (func) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    func.apply(this, args);
+  }
+}
+
 /////////
 var dataModel = null;
 var DATA_PREFIX = 'A5jwiqb';
@@ -25,7 +45,6 @@ var existingUserLockElem = $('.lock-img');
 var existingUserInputElem = $('#existing-user input')
 var existingUserSubmitElem = $('#existing-user input[type=submit]');
 var editViewElem = $('#edit-view');
-var editViewSaveButtonElem = $('#btn-save');
 var editViewLockButtonElem = $('#btn-lock');
 var editViewTextAreaElem = $('#edit-view textarea');
 var editViewGearElem = $('.gear-img');
@@ -45,7 +64,12 @@ var UiState = {
 function DataModel(fileName) {
   this.fileName = fileName;
   this._fileNameSaved = !!fileName;
+  this.onsave = null;
   this.reset();
+
+  var pair = throttleDecorator(this, DataModel.prototype.save, 1000);
+  this.autoSave = pair[0];
+  this.save = pair[1];
 }
 
 DataModel.prototype.reset = function() {
@@ -65,7 +89,11 @@ DataModel.prototype.save = function(callback) {
   this.lastSaved = new Date;
   data['payload-' + this.fileName] = encrypted.toString();
   data['time-' + this.fileName] = this.lastSaved.getTime();
-  chrome.storage.sync.set(data, callback);
+  var me = this;
+  chrome.storage.sync.set(data, function() {
+    maybeCall(callback);
+    maybeCall(me.onsave);
+  });
 };
 
 DataModel.prototype.load = function(callback, failBack) {
@@ -127,6 +155,22 @@ function updateUiState(forceState) {
   }
 }
 
+function flushChanges(autoSave, resetAfter, e) {
+  if (dataModel.unencryptedData != editViewTextAreaElem) {
+    console.log('flush from event: ' + (e.type || e));
+    dataModel.unencryptedData = editViewTextAreaElem.value;
+    if (autoSave) {
+      dataModel.autoSave();
+    } else {
+      dataModel.save(function() {
+        if (resetAfter) {
+          dataModel.reset();
+        }
+      });
+    }
+  }
+}
+
 function onExistingPasswordSubmit(e) {
   e.preventDefault();
   var password = existingUserInputElem.value;
@@ -157,19 +201,6 @@ function onNewPasswordSubmit(e) {
   dataModel.save(updateUiState);
 }
 
-function onSaveClick() {
-  dataModel.unencryptedData = editViewTextAreaElem.value;
-  dataModel.save(updateUiState);
-}
-
-function onLockClick() {
-  dataModel.unencryptedData = editViewTextAreaElem.value;
-  dataModel.save(function() {
-    dataModel.reset();
-    updateUiState();
-  });
-}
-
 function onGearClick() {
   updateUiState(UiState.SETTINGS);
 }
@@ -179,14 +210,16 @@ function onSettingsBackClick() {
 }
 
 function onStorageChanged(changes, areaName) {
-  dataModel.load(updateUiState, updateUiState);
+  // TODO
 }
 
 function registerEvents() {
   newUserFormElem.onsubmit = onNewPasswordSubmit;
   existingUserFormElem.onsubmit = onExistingPasswordSubmit;
-  editViewSaveButtonElem.onclick = onSaveClick;
-  editViewLockButtonElem.onclick = onLockClick;
+  editViewTextAreaElem.oninput = flushChanges.bind(null, true, false);
+  editViewTextAreaElem.onblur = flushChanges.bind(null, false, false);
+  editViewLockButtonElem.onclick = flushChanges.bind(null, false, true);
+  chrome.app.window.current().onClosed.addListener(flushChanges.bind(null, false, true, 'closed'));
   editViewGearElem.onclick = onGearClick;
   editViewGearElem.onkeypress = function(e) {
     (e.which == 13) && onGearClick();
@@ -208,7 +241,8 @@ function registerEvents() {
   newUserInputElem.oninput = function() {
     newUserSubmitElem.disabled = !newUserInputElem.value;
   };
-  //chrome.storage.onChanged.addListener(onStorageChanged);
+
+  chrome.storage.onChanged.addListener(onStorageChanged);
 }
 
 function init() {
@@ -218,10 +252,10 @@ function init() {
   registerEvents();
   chrome.storage.sync.get('master', function(items) {
     dataModel = new DataModel(items.master || '');
+    dataModel.onsave = updateUiState;
     chrome.app.window.current().focus();
     updateUiState();
   });
 }
-
 
 init();

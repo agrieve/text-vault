@@ -138,6 +138,8 @@ input[type=submit] {
 
 #editor-textbox {
   display: block;
+  font-size: 10pt;
+  font-family: monospace;
 }
 
 .gear-container {
