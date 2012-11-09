@@ -11,7 +11,11 @@
   },
   "app": {
     "background": {
-      "scripts": ["background.js"]
+      "scripts": [
+        "background.js",
+        "aes.js",
+        "datamodel.js"
+      ]
     }
   },
   "permissions": [

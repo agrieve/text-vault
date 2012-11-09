@@ -1,18 +1,19 @@
 
 var wnd = null;
+var dataModel = null;
 
 function onWindowCreated(w) {
   wnd = w;
   // Always log to the background page's console.
   wnd.contentWindow.console = console;
+  wnd.contentWindow.dataModel = dataModel;
 
-  // Required to make storage calls continue to work within onClosed().
-  wnd.contentWindow.chrome = chrome;
-  chrome.app.window.current = function() { return wnd };
   // You can't re-show a window after it's been closed.
   wnd.onClosed.addListener(function() {
     wnd = null;
   });
+
+  wnd.focus();
 }
 
 function createWindow() {
@@ -27,5 +28,12 @@ function createWindow() {
  * Listens for the app launching then creates the window
  */
 chrome.app.runtime.onLaunched.addListener(function() {
-  createWindow();
+  if (!dataModel) {
+    chrome.storage.sync.get('master', function(items) {
+      dataModel = new DataModel(items.master || '');
+      createWindow();
+    });
+  } else {
+    createWindow();
+  }
 });

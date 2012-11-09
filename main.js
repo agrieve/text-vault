@@ -11,29 +11,7 @@ function setVisible(elem, value) {
   elem.style.display = value ? '' : 'none';
 }
 
-function throttleDecorator(obj, func, delay) {
-  var timerId = null;
-  function unthrottled() {
-    window.clearTimeout(timerId)
-    timerId = null;
-    func.apply(obj, arguments);
-  }
-  function throttled() {
-    timerId = timerId || window.setTimeout(unthrottled, delay);
-  }
-  return [throttled, unthrottled];
-}
-
-function maybeCall(func) {
-  if (func) {
-    var args = Array.prototype.slice.call(arguments, 1);
-    func.apply(this, args);
-  }
-}
-
 /////////
-var dataModel = null;
-var DATA_PREFIX = 'A5jwiqb';
 var newUserViewElem = $('#new-user');
 var newUserFormElem = $('#new-user form');
 var newUserInputElem = $('#new-user input')
@@ -59,61 +37,6 @@ var UiState = {
   EXISTING: 2,
   EDITING: 3,
   SETTINGS: 4
-};
-
-function DataModel(fileName) {
-  this.fileName = fileName;
-  this._fileNameSaved = !!fileName;
-  this.onsave = null;
-  this.reset();
-
-  var pair = throttleDecorator(this, DataModel.prototype.save, 1000);
-  this.autoSave = pair[0];
-  this.save = pair[1];
-}
-
-DataModel.prototype.reset = function() {
-  this.lastSaved = null;
-  this.password = null;
-  this.unencryptedData = '';
-};
-
-DataModel.prototype.save = function(callback) {
-  var data = {};
-  if (!this._fileNameSaved) {
-    data['master'] = this.fileName;
-    this._fileNameSaved = true;
-  }
-  var encrypted = CryptoJS.AES.encrypt(DATA_PREFIX + this.unencryptedData, this.password);
-
-  this.lastSaved = new Date;
-  data['payload-' + this.fileName] = encrypted.toString();
-  data['time-' + this.fileName] = this.lastSaved.getTime();
-  var me = this;
-  chrome.storage.sync.set(data, function() {
-    maybeCall(callback);
-    maybeCall(me.onsave);
-  });
-};
-
-DataModel.prototype.load = function(callback, failBack) {
-  var me = this;
-  var storageKey = 'payload-' + this.fileName;
-  var timeKey = 'time-' + this.fileName;
-  var encrypted = chrome.storage.sync.get([storageKey, timeKey], function(items) {
-    var decrypted = '';
-    try {
-      decrypted = CryptoJS.AES.decrypt(items[storageKey], me.password).toString(CryptoJS.enc.Utf8);
-    } catch(e) {
-    }
-    if (decrypted.indexOf(DATA_PREFIX) == 0) {
-      me.unencryptedData = decrypted.slice(DATA_PREFIX.length);
-      me.lastSaved = new Date(items[timeKey]);
-      callback();
-    } else {
-      failBack();
-    }
-  });
 };
 
 function updateUiState(forceState) {
@@ -243,6 +166,7 @@ function registerEvents() {
   };
 
   chrome.storage.onChanged.addListener(onStorageChanged);
+  dataModel.onsave = updateUiState;
 }
 
 function init() {
@@ -250,12 +174,7 @@ function init() {
     document.body.classList.add('ios');
   }
   registerEvents();
-  chrome.storage.sync.get('master', function(items) {
-    dataModel = new DataModel(items.master || '');
-    dataModel.onsave = updateUiState;
-    chrome.app.window.current().focus();
-    updateUiState();
-  });
+  updateUiState();
 }
 
 init();
