@@ -4,9 +4,10 @@
   "version": "1",
   "minimum_chrome_version": "22",
   "icons": {
-    "16": "lock.svg",
-    "32": "lock.svg",
-    "128": "lock.svg"
+    "16": "lock16.png",
+    "32": "lock32.png",
+    "64": "lock64.png",
+    "128": "lock128.png"
   },
   "app": {
     "background": {
