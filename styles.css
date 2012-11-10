@@ -118,14 +118,14 @@ input[type=submit] {
 }
 
 .correct-pass-anim {
-  -webkit-animation-name: correct-password-anim;
+  -webkit-animation-name: correct-pass-keyframes;
   -webkit-animation-duration: .3s;
   -webkit-animation-iteration-count: 1;
   -webkit-animation-timing-function: linear;
   z-index:10;
 }
 
-@-webkit-keyframes correct-password-anim {
+@-webkit-keyframes correct-pass-keyframes {
   0% {
     -webkit-transform: scale3d(1,1,1);
     opacity: 1;
@@ -133,6 +133,44 @@ input[type=submit] {
   100% {
     -webkit-transform: scale3d(4,4,1);
     opacity: 0;
+  }
+}
+
+.start-up-anim {
+  -webkit-animation-name: start-up-keyframes;
+  -webkit-animation-duration: .3s;
+  -webkit-animation-iteration-count: 1;
+  -webkit-animation-timing-function: ease-out;
+  z-index:10;
+}
+
+@-webkit-keyframes start-up-keyframes {
+  0% {
+    -webkit-transform: scale3d(0,0,1);
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: scale3d(1,1,1);
+    opacity: 1;
+  }
+}
+
+.lock-anim {
+  -webkit-animation-name: lock-keyframes;
+  -webkit-animation-duration: .3s;
+  -webkit-animation-iteration-count: 1;
+  -webkit-animation-timing-function: ease-out;
+  z-index:10;
+}
+
+@-webkit-keyframes lock-keyframes {
+  0% {
+    -webkit-transform: scale3d(4,4,1);
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: scale3d(1,1,1);
+    opacity: 1;
   }
 }
 

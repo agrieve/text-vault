@@ -53,7 +53,12 @@ function updateUiState(forceState) {
     if (newState == UiState.EDITING && curUiState == UiState.EXISTING) {
       existingUserLockElem.classList.add('correct-pass-anim');
       setVisible(existingUserLockElem, true);
+    } else if (newState == UiState.EXISTING && curUiState == UiState.EDITING) {
+      existingUserLockElem.classList.add('lock-anim');
+    } else if (newState == UiState.EXISTING && curUiState == UiState.INIT) {
+      existingUserLockElem.classList.add('start-up-anim');
     }
+
     if (newState == UiState.SETTINGS) {
       flipContainerElem.classList.add('flipped');
       editViewGearElem.classList.add('gear-anim');
@@ -155,6 +160,8 @@ function registerEvents() {
     window.setTimeout(function() {
       existingUserLockElem.classList.remove('wrong-pass-anim');
       existingUserLockElem.classList.remove('correct-pass-anim');
+      existingUserLockElem.classList.remove('start-up-anim');
+      existingUserLockElem.classList.remove('lock-anim');
     }, 0);
   }, false);
 
