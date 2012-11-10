@@ -46,6 +46,10 @@ function updateUiState(forceState) {
   var newState = firstTimeUser ? UiState.NEW :
                  hasPassword ? UiState.EDITING :
                  UiState.EXISTING;
+  // Stay in settings until they leave via forceState.
+  if (newState == UiState.EDITING && curUiState == UiState.SETTINGS) {
+    newState = UiState.SETTINGS;
+  }
   if (forceState !== undefined) {
     newState = forceState;
   }
@@ -72,10 +76,21 @@ function updateUiState(forceState) {
     setVisible(editViewElem, newState == UiState.EDITING || newState == UiState.SETTINGS);
     newUserInputElem.value = '';
     existingUserInputElem.value = '';
-    // Focus the password textbox if they are visible.
-    newUserInputElem.offsetWidth && newUserInputElem.focus();
-    existingUserInputElem.offsetWidth && existingUserInputElem.focus();
-    editViewTextAreaElem.offsetWidth && editViewTextAreaElem.focus();
+    // Focus the default field.
+    switch (newState) {
+      case UiState.NEW:
+        newUserInputElem.focus();
+        break;
+      case UiState.EXISTING:
+        existingUserInputElem.focus();
+        break;
+      case UiState.EDITING:
+        editViewTextAreaElem.focus();
+        break;
+      case UiState.SETTINGS:
+        settingsViewBackElem.focus();
+        break;
+    }
     curUiState = newState;
   }
   if (curUiState == UiState.EDITING) {
@@ -132,14 +147,6 @@ function onNewPasswordSubmit(e) {
   dataModel.save(updateUiState);
 }
 
-function onGearClick() {
-  updateUiState(UiState.SETTINGS);
-}
-
-function onSettingsBackClick() {
-  updateUiState(UiState.EDITING);
-}
-
 function onStorageChanged(changes, areaName) {
   // TODO
 }
@@ -151,11 +158,11 @@ function registerEvents() {
   editViewTextAreaElem.onblur = flushChanges.bind(null, false, false);
   editViewLockButtonElem.onclick = flushChanges.bind(null, false, true);
   chrome.app.window.current().onClosed.addListener(flushChanges.bind(null, false, true, 'closed'));
-  editViewGearElem.onclick = onGearClick;
+  editViewGearElem.onclick = updateUiState.bind(null, UiState.SETTINGS);
   editViewGearElem.onkeypress = function(e) {
-    (e.which == 13) && onGearClick();
+    (e.which == 13) && editViewGearElem.onclick();
   };
-  settingsViewBackElem.onclick = onSettingsBackClick;
+  settingsViewBackElem.onclick = updateUiState.bind(null, UiState.EDITING);
   existingUserLockElem.addEventListener('webkitAnimationEnd', function() {
     if (curUiState == UiState.EDITING) {
       setVisible(existingUserLockElem, false);
