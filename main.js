@@ -26,7 +26,8 @@ var editViewElem = $('#edit-view');
 var editViewLockButtonElem = $('#btn-lock');
 var editViewTextAreaElem = $('#edit-view textarea');
 var editViewGearElem = $('.gear-img');
-var lastSavedElem = $('#last-saved');
+var editViewLastSavedElem = $('#last-saved');
+var editViewCharCountElem = $('#char-count');
 var flipContainerElem = $('#flip-container');
 var settingsViewBackElem = $('#btn-close');
 var curUiState = 0;
@@ -79,7 +80,8 @@ function updateUiState(forceState) {
   }
   if (curUiState == UiState.EDITING) {
     editViewTextAreaElem.value = dataModel.unencryptedData;
-    lastSavedElem.innerText = dataModel.lastSaved.toString().replace(/ GMT.*/, '');
+    editViewLastSavedElem.innerText = dataModel.lastSaved.toString().replace(/ GMT.*/, '');
+    editViewCharCountElem.innerText = dataModel.unencryptedData.length;
   }
 }
 
@@ -87,6 +89,7 @@ function flushChanges(autoSave, resetAfter, e) {
   if (dataModel.unencryptedData != editViewTextAreaElem) {
     console.log('flush from event: ' + (e.type || e));
     dataModel.unencryptedData = editViewTextAreaElem.value;
+    updateUiState();
     if (autoSave) {
       dataModel.autoSave();
     } else {
