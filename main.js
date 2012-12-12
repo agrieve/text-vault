@@ -1,10 +1,14 @@
 
-function $(s) {
-  var ret = document.querySelector(s);
-  if (!ret) {
+function $$(s) {
+  var ret = document.querySelectorAll(s);
+  if (!ret || !ret.length) {
     throw Error('Bad query selector: ' + s);
   }
   return ret;
+}
+
+function $(s) {
+  return $$(s)[0];
 }
 
 function setVisible(elem, value) {
@@ -12,6 +16,8 @@ function setVisible(elem, value) {
 }
 
 /////////
+var HAS_PHYSICAL_KEYBOARD = !window.cordova;
+
 var newUserViewElem = $('#new-user');
 var newUserFormElem = $('#new-user form');
 var newUserInputElem = $('#new-user input')
@@ -29,7 +35,11 @@ var editViewGearElem = $('.gear-img');
 var editViewLastSavedElem = $('#last-saved');
 var editViewCharCountElem = $('#char-count');
 var flipContainerElem = $('#flip-container');
-var settingsViewBackElem = $('#btn-close');
+var settingsBackElem = $('#btn-close');
+var settingsChangePasswordSectionElem = $('#change-password-section');
+var settingsChangePasswordBtnElem = $('#change-password-btn');
+var settingsExistingPasswordElem = $$('#settings-view .password-input')[0];
+var settingsNewPasswordElem = $$('#settings-view .password-input')[1];
 var curUiState = 0;
 
 var UiState = {
@@ -50,7 +60,8 @@ function updateUiState(forceState) {
   if (newState == UiState.EDITING && curUiState == UiState.SETTINGS) {
     newState = UiState.SETTINGS;
   }
-  if (forceState !== undefined) {
+  // Ignore events that are passed as params.
+  if (typeof forceState == 'number') {
     newState = forceState;
   }
   if (curUiState != newState) {
@@ -77,19 +88,21 @@ function updateUiState(forceState) {
     newUserInputElem.value = '';
     existingUserInputElem.value = '';
     // Focus the default field.
-    switch (newState) {
-      case UiState.NEW:
-        newUserInputElem.focus();
-        break;
-      case UiState.EXISTING:
-        existingUserInputElem.focus();
-        break;
-      case UiState.EDITING:
-        editViewTextAreaElem.focus();
-        break;
-      case UiState.SETTINGS:
-        settingsViewBackElem.focus();
-        break;
+    if (HAS_PHYSICAL_KEYBOARD) {
+      switch (newState) {
+        case UiState.NEW:
+          newUserInputElem.focus();
+          break;
+        case UiState.EXISTING:
+          existingUserInputElem.focus();
+          break;
+        case UiState.EDITING:
+          editViewTextAreaElem.focus();
+          break;
+        case UiState.SETTINGS:
+          settingsBackElem.focus();
+          break;
+      }
     }
     curUiState = newState;
   }
@@ -97,6 +110,17 @@ function updateUiState(forceState) {
     editViewTextAreaElem.value = dataModel.unencryptedData;
     editViewLastSavedElem.innerText = dataModel.lastSaved.toString().replace(/ GMT.*/, '');
     editViewCharCountElem.innerText = dataModel.unencryptedData.length;
+  }
+  if (curUiState == UiState.SETTINGS) {
+    var curPassword = settingsExistingPasswordElem.value;
+    settingsExistingPasswordElem.classList.remove('password-input-correct');
+    settingsExistingPasswordElem.classList.remove('password-input-wrong');
+    if (curPassword == dataModel.password) {
+      settingsExistingPasswordElem.classList.add('password-input-correct');
+    } else if (curPassword) {
+      settingsExistingPasswordElem.classList.add('password-input-wrong');
+    }
+    settingsChangePasswordBtnElem.disabled = !(curPassword == dataModel.password && settingsNewPasswordElem.value);
   }
 }
 
@@ -144,7 +168,15 @@ function onNewPasswordSubmit(e) {
   }
   dataModel.fileName = 'file1';
   dataModel.password = password;
-  dataModel.save(updateUiState);
+  dataModel.save();
+}
+
+function onChangePassword() {
+  dataModel.password = settingsNewPasswordElem.value;
+  dataModel.save();
+  settingsNewPasswordElem.value = settingsExistingPasswordElem.value = '';
+  settingsChangePasswordBtnElem.disabled = true;
+  settingsChangePasswordSectionElem.classList.add('change-password-anim');
 }
 
 function onStorageChanged(changes, areaName) {
@@ -153,16 +185,32 @@ function onStorageChanged(changes, areaName) {
 
 function registerEvents() {
   newUserFormElem.onsubmit = onNewPasswordSubmit;
+  newUserInputElem.oninput = function() {
+    newUserSubmitElem.disabled = !newUserInputElem.value;
+  };
+
   existingUserFormElem.onsubmit = onExistingPasswordSubmit;
+  existingUserInputElem.oninput = function() {
+    existingUserSubmitElem.disabled = !existingUserInputElem.value;
+  };
+
   editViewTextAreaElem.oninput = flushChanges.bind(null, true, false);
   editViewTextAreaElem.onblur = flushChanges.bind(null, false, false);
   editViewLockButtonElem.onclick = flushChanges.bind(null, false, true);
-  chrome.app.window.current().onClosed.addListener(flushChanges.bind(null, false, true, 'closed'));
   editViewGearElem.onclick = updateUiState.bind(null, UiState.SETTINGS);
   editViewGearElem.onkeypress = function(e) {
     (e.which == 13) && editViewGearElem.onclick();
   };
-  settingsViewBackElem.onclick = updateUiState.bind(null, UiState.EDITING);
+
+  settingsBackElem.onclick = updateUiState.bind(null, UiState.EDITING);
+  settingsExistingPasswordElem.oninput = updateUiState;
+  settingsNewPasswordElem.oninput = updateUiState;
+  settingsChangePasswordBtnElem.onclick = onChangePassword;
+  settingsChangePasswordSectionElem.addEventListener('webkitAnimationEnd', function() {
+    settingsChangePasswordSectionElem.classList.remove('change-password-anim');
+  }, false);
+
+
   existingUserLockElem.addEventListener('webkitAnimationEnd', function() {
     if (curUiState == UiState.EDITING) {
       setVisible(existingUserLockElem, false);
@@ -175,13 +223,7 @@ function registerEvents() {
     }, 0);
   }, false);
 
-  existingUserInputElem.oninput = function() {
-    existingUserSubmitElem.disabled = !existingUserInputElem.value;
-  };
-  newUserInputElem.oninput = function() {
-    newUserSubmitElem.disabled = !newUserInputElem.value;
-  };
-
+  chrome.app.window.current().onClosed.addListener(flushChanges.bind(null, false, true, 'closed'));
   chrome.storage.onChanged.addListener(onStorageChanged);
   dataModel.onsave = updateUiState;
 }

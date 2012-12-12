@@ -10,14 +10,14 @@
   <div id="new-user" class="flex1 relative" style="display:none">
     <div>No data present.</div>
     <form>
-      <div>Enter a password: <input id="new-password" class="password-input"></div>
+      <div>Enter a password: <input id="new-password" class="password-input" autocorrect=off autocapitalize=off></div>
       <div><input type="submit" value="Done"></div>
     </form>
   </div>
   <div id="existing-user" class="flex1 relative" style="display:none">
     <div class="lock-msg">Enter password to unlock.</div>
     <form class="bottom-align">
-      <input id="existing-password" class="password-input">
+      <input id="existing-password" class="password-input" autocorrect=off autocapitalize=off>
       <div><input type="submit" value="Unlock"></div>
     </form>
   </div>
@@ -42,9 +42,12 @@
             <option value="120">2 minutes</option>
             <option value="300">5 minutes</option>
         </select></div>
-        <div class="settings-section">Change Password</div>
-        <div>Old Password: <input class="password-input"></div>
-        <div>New Password: <input class="password-input"></div>
+        <div class="settings-section relative" id="change-password-section">Change Password
+          <div class="password-updated-msg">Password Updated.</div>
+          <div>Old Password: <input class="password-input" autocorrect=off autocapitalize=off></div>
+          <div>New Password: <input class="password-input" autocorrect=off autocapitalize=off></div>
+          <div><button id="change-password-btn" disabled>Change Password</button>
+        </div>
         <div class="settings-section"><button id="btn-close">Done</button></button></div>
       </div>
     </div>
