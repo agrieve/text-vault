@@ -37,6 +37,7 @@ function DataModel(fileName) {
 DataModel.prototype.reset = function() {
   this.lastSaved = null;
   this.password = null;
+  this.autoLockTimeout = 30;
   this.unencryptedData = '';
 };
 
@@ -51,6 +52,7 @@ DataModel.prototype.save = function(callback) {
   this.lastSaved = new Date;
   data['payload-' + this.fileName] = encrypted.toString();
   data['time-' + this.fileName] = this.lastSaved.getTime();
+  data['autoLockTimeout-' + this.fileName] = this.autoLockTimeout;
   var me = this;
   chrome.storage.sync.set(data, function() {
     maybeCall(callback);
@@ -62,7 +64,8 @@ DataModel.prototype.load = function(callback, failBack) {
   var me = this;
   var storageKey = 'payload-' + this.fileName;
   var timeKey = 'time-' + this.fileName;
-  var encrypted = chrome.storage.sync.get([storageKey, timeKey], function(items) {
+  var autoLockTimeoutKey = 'autoLockTimeout-' + this.fileName;
+  var encrypted = chrome.storage.sync.get([storageKey, timeKey, autoLockTimeoutKey], function(items) {
     var decrypted = '';
     try {
       decrypted = CryptoJS.AES.decrypt(items[storageKey], me.password).toString(CryptoJS.enc.Utf8);
@@ -71,6 +74,7 @@ DataModel.prototype.load = function(callback, failBack) {
     if (decrypted.indexOf(DATA_PREFIX) == 0) {
       me.unencryptedData = decrypted.slice(DATA_PREFIX.length);
       me.lastSaved = new Date(items[timeKey]);
+      me.autoLockTimeout = items[autoLockTimeoutKey];
       callback();
     } else {
       failBack();

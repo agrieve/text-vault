@@ -35,6 +35,7 @@ var editViewGearElem = $('.gear-img');
 var editViewLastSavedElem = $('#last-saved');
 var editViewCharCountElem = $('#char-count');
 var flipContainerElem = $('#flip-container');
+var settingsAutoLockElem = $('#autolock-select');
 var settingsBackElem = $('#btn-close');
 var settingsChangePasswordSectionElem = $('#change-password-section');
 var settingsChangePasswordBtnElem = $('#change-password-btn');
@@ -87,6 +88,7 @@ function updateUiState(forceState) {
     setVisible(editViewElem, newState == UiState.EDITING || newState == UiState.SETTINGS);
     newUserInputElem.value = '';
     existingUserInputElem.value = '';
+    settingsAutoLockElem.value = dataModel.autoLockTimeout;
     // Focus the default field.
     if (HAS_PHYSICAL_KEYBOARD) {
       switch (newState) {
@@ -171,6 +173,11 @@ function onNewPasswordSubmit(e) {
   dataModel.save();
 }
 
+function onChangeAutoLock() {
+  dataModel.autoLockTimeout = +settingsAutoLockElem.value;
+  dataModel.save();
+}
+
 function onChangePassword() {
   dataModel.password = settingsNewPasswordElem.value;
   dataModel.save();
@@ -203,6 +210,7 @@ function registerEvents() {
   };
 
   settingsBackElem.onclick = updateUiState.bind(null, UiState.EDITING);
+  settingsAutoLockElem.onchange = onChangeAutoLock;
   settingsExistingPasswordElem.oninput = updateUiState;
   settingsNewPasswordElem.oninput = updateUiState;
   settingsChangePasswordBtnElem.onclick = onChangePassword;
