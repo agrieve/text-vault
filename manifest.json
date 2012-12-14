@@ -4,16 +4,16 @@
   "version": "1",
   "minimum_chrome_version": "22",
   "icons": {
-    "16": "lock16.png",
-    "32": "lock32.png",
-    "64": "lock64.png",
-    "128": "lock128.png"
+    "16": "third_party/lock16.png",
+    "32": "third_party/lock32.png",
+    "64": "third_party/lock64.png",
+    "128": "third_party/lock128.png"
   },
   "app": {
     "background": {
       "scripts": [
         "background.js",
-        "aes.js",
+        "third_party/aes.js",
         "datamodel.js"
       ]
     }

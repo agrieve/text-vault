@@ -294,6 +294,10 @@ function registerEvents() {
   chrome.storage.onChanged.addListener(onStorageChanged);
   dataModel.onsave = updateUiState;
   document.body.addEventListener('webkitTransitionEnd', onBodyTransitionEnd, false);
+
+  if (window.cordova) {
+    new FastClick(document.body);
+  }
 }
 
 function init() {
