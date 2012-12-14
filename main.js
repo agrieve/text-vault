@@ -205,6 +205,7 @@ function onExistingPasswordSubmit(e) {
       existingUserLockElem.classList.add('wrong-pass-anim');
       existingUserInputElem.select();
     }, 0);
+    existingUserInputElem.focus();
   });
 }
 
