@@ -42,6 +42,9 @@ var settingsChangePasswordBtnElem = $('#change-password-btn');
 var settingsExistingPasswordElem = $$('#settings-view .password-input')[0];
 var settingsNewPasswordElem = $$('#settings-view .password-input')[1];
 var curUiState = 0;
+var autoLockTimerId = 0;
+var wnd = chrome.app.window.current();
+var unlockedWindowSize = wnd.getBounds();
 
 var UiState = {
   INIT: 0,
@@ -51,7 +54,15 @@ var UiState = {
   SETTINGS: 4
 };
 
+function isLockScreen(uiState) {
+  return uiState == UiState.EXISTING || uiState == UiState.NEW;
+}
+
 function updateUiState(forceState) {
+  // Don't update any state if the window has been closed.
+  if (!window) {
+    return;
+  }
   var firstTimeUser = !dataModel.fileName;
   var hasPassword = !firstTimeUser && !!dataModel.password;
   var newState = firstTimeUser ? UiState.NEW :
@@ -74,6 +85,11 @@ function updateUiState(forceState) {
       existingUserLockElem.classList.add('lock-anim');
     } else if (newState == UiState.EXISTING && curUiState == UiState.INIT) {
       existingUserLockElem.classList.add('start-up-anim');
+    }
+    if (newState == UiState.EDITING && isLockScreen(curUiState)) {
+      resizeWindow(unlockedWindowSize.width, unlockedWindowSize.height);
+    } else if (isLockScreen(newState)) {
+      resizeWindow(300, 400);
     }
 
     if (newState == UiState.SETTINGS) {
@@ -143,6 +159,37 @@ function flushChanges(autoSave, resetAfter, e) {
   }
 }
 
+function resizeWindow(newWidth, newHeight) {
+  var startBounds = wnd.getBounds();
+  var wDiff = newWidth - startBounds.width;
+  var hDiff = newHeight - startBounds.height;
+  wnd.setBounds({
+    left: Math.floor(Math.min(screen.width - newWidth, Math.max(0, startBounds.left - wDiff / 2))),
+    top: Math.min(screen.height - newHeight, Math.max(0, startBounds.top - hDiff)),
+    width: newWidth,
+    height: newHeight
+  });
+}
+
+function resetAutoLock() {
+  clearTimeout(autoLockTimerId);
+  document.body.classList.remove('auto-lock-fade');
+  if (dataModel.autoLockTimeout > 0) {
+    autoLockTimerId = setTimeout(onAutoLockBegin, dataModel.autoLockTimeout * 1000);
+  }
+}
+
+function onAutoLockBegin() {
+  document.body.classList.add('auto-lock-fade');
+}
+
+function onBodyTransitionEnd(e) {
+  if (e.target == document.body) {
+    console.log('Auto-lock kicked in');
+    window.close();
+  }
+}
+
 function onExistingPasswordSubmit(e) {
   e.preventDefault();
   var password = existingUserInputElem.value;
@@ -176,6 +223,7 @@ function onNewPasswordSubmit(e) {
 function onChangeAutoLock() {
   dataModel.autoLockTimeout = +settingsAutoLockElem.value;
   dataModel.save();
+  resetAutoLock();
 }
 
 function onChangePassword() {
@@ -184,6 +232,12 @@ function onChangePassword() {
   settingsNewPasswordElem.value = settingsExistingPasswordElem.value = '';
   settingsChangePasswordBtnElem.disabled = true;
   settingsChangePasswordSectionElem.classList.add('change-password-anim');
+}
+
+function onBoundsChanged() {
+  if (!isLockScreen(curUiState)) {
+    unlockedWindowSize = wnd.getBounds();
+  }
 }
 
 function onStorageChanged(changes, areaName) {
@@ -231,9 +285,15 @@ function registerEvents() {
     }, 0);
   }, false);
 
-  chrome.app.window.current().onClosed.addListener(flushChanges.bind(null, false, true, 'closed'));
+  document.addEventListener('touchstart', resetAutoLock, false);
+  document.addEventListener('mousedown', resetAutoLock, false);
+  document.addEventListener('keydown', resetAutoLock, false);
+
+  wnd.onClosed.addListener(flushChanges.bind(null, false, true, 'closed'));
+  wnd.onBoundsChanged.addListener(onBoundsChanged);
   chrome.storage.onChanged.addListener(onStorageChanged);
   dataModel.onsave = updateUiState;
+  document.body.addEventListener('webkitTransitionEnd', onBodyTransitionEnd, false);
 }
 
 function init() {
@@ -242,6 +302,7 @@ function init() {
   }
   registerEvents();
   updateUiState();
+  resetAutoLock();
 }
 
 init();

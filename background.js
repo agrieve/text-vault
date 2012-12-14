@@ -20,7 +20,8 @@ function createWindow() {
   if (wnd) {
     wnd.show();
   } else {
-    chrome.app.window.create('main.html', {width: 300, height: 400, id: 'main'}, onWindowCreated);
+    // TODO: File a bug about calling onWindowCreated before showing the window.
+    chrome.app.window.create('main.html', {width: 300, height: 400, id: 'a'}, onWindowCreated);
   }
 }
 
@@ -31,7 +32,8 @@ chrome.app.runtime.onLaunched.addListener(function() {
   if (!dataModel) {
     chrome.storage.sync.get('master', function(items) {
       dataModel = new DataModel(items.master || '');
-      createWindow();
+      // Loads the auto-lock values.
+      dataModel.load(createWindow, createWindow);
     });
   } else {
     createWindow();

@@ -27,6 +27,7 @@ function DataModel(fileName) {
   this.fileName = fileName;
   this._fileNameSaved = !!fileName;
   this.onsave = null;
+  this.autoLockTimeout = 30;
   this.reset();
 
   var pair = throttleDecorator(this, DataModel.prototype.save, 1000);
@@ -37,7 +38,6 @@ function DataModel(fileName) {
 DataModel.prototype.reset = function() {
   this.lastSaved = null;
   this.password = null;
-  this.autoLockTimeout = 30;
   this.unencryptedData = '';
 };
 
@@ -71,10 +71,10 @@ DataModel.prototype.load = function(callback, failBack) {
       decrypted = CryptoJS.AES.decrypt(items[storageKey], me.password).toString(CryptoJS.enc.Utf8);
     } catch(e) {
     }
+    me.autoLockTimeout = items[autoLockTimeoutKey];
     if (decrypted.indexOf(DATA_PREFIX) == 0) {
       me.unencryptedData = decrypted.slice(DATA_PREFIX.length);
       me.lastSaved = new Date(items[timeKey]);
-      me.autoLockTimeout = items[autoLockTimeoutKey];
       callback();
     } else {
       failBack();

@@ -69,6 +69,11 @@ img {
   -webkit-transform: rotateY(180deg);
 }
 
+.auto-lock-fade {
+  -webkit-transition: opacity 4s linear;
+  opacity: 0;
+}
+
 #new-user, #existing-user, #settings-view {
   text-align:center;
 }
