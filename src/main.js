@@ -18,6 +18,9 @@ function setVisible(elem, value) {
 /////////
 var HAS_PHYSICAL_KEYBOARD = !window.cordova;
 
+var logInFailViewElem = $('#log-in-failure-view');
+var logInFailButtonElem = $('#log-in-failure-view button');
+var syncingViewElem = $('#syncing-view');
 var newUserViewElem = $('#new-user');
 var newUserFormElem = $('#new-user form');
 var newUserInputElem = $('#new-user input')
@@ -41,6 +44,8 @@ var settingsChangePasswordSectionElem = $('#change-password-section');
 var settingsChangePasswordBtnElem = $('#change-password-btn');
 var settingsExistingPasswordElem = $$('#settings-view .password-input')[0];
 var settingsNewPasswordElem = $$('#settings-view .password-input')[1];
+var activeVault = null;
+var activeCompartment = null;
 var curUiState = 0;
 var autoLockTimerId = 0;
 var wnd = chrome.app.window.current();
@@ -48,10 +53,12 @@ var unlockedWindowSize = wnd.getBounds();
 
 var UiState = {
   INIT: 0,
-  NEW: 1,
-  EXISTING: 2,
-  EDITING: 3,
-  SETTINGS: 4
+  LOG_IN_FAILURE: 1,
+  SYNCING: 2,
+  NEW: 3,
+  EXISTING: 4,
+  EDITING: 5,
+  SETTINGS: 6
 };
 
 function isLockScreen(uiState) {
@@ -63,11 +70,14 @@ function updateUiState(forceState) {
   if (!window) {
     return;
   }
-  var firstTimeUser = !dataModel.fileName;
-  var hasPassword = !firstTimeUser && !!dataModel.password;
-  var newState = firstTimeUser ? UiState.NEW :
-                 hasPassword ? UiState.EDITING :
-                 UiState.EXISTING;
+
+  var firstTimeUser = !rootModel.vaults.length;
+  var hasPassword = activeVault && !!activeVault.hash;
+  var newState = rootModel.logInFailure ? UiState.LOG_IN_FAILURE :
+                 rootModel.scanInProgress ? UiState.SYNCING :
+                 firstTimeUser ? UiState.NEW :
+                 !hasPassword ? UiState.EXISTING:
+                 UiState.EDITING;
   // Stay in settings until they leave via forceState.
   if (newState == UiState.EDITING && curUiState == UiState.SETTINGS) {
     newState = UiState.SETTINGS;
@@ -83,7 +93,7 @@ function updateUiState(forceState) {
       setVisible(existingUserLockElem, true);
     } else if (newState == UiState.EXISTING && curUiState == UiState.EDITING) {
       existingUserLockElem.classList.add('lock-anim');
-    } else if (newState == UiState.EXISTING && curUiState == UiState.INIT) {
+    } else if (newState == UiState.EXISTING && (curUiState == UiState.INIT || curUiState == UiState.SYNCING)) {
       existingUserLockElem.classList.add('start-up-anim');
     }
     if (newState == UiState.EDITING && isLockScreen(curUiState)) {
@@ -99,12 +109,14 @@ function updateUiState(forceState) {
       flipContainerElem.classList.remove('flipped');
       editViewGearElem.classList.remove('gear-anim');
     }
+    setVisible(syncingViewElem, newState == UiState.SYNCING);
+    setVisible(logInFailViewElem, newState == UiState.LOG_IN_FAILURE);
     setVisible(newUserViewElem, newState == UiState.NEW);
     setVisible(existingUserViewElem, newState == UiState.EXISTING);
     setVisible(editViewElem, newState == UiState.EDITING || newState == UiState.SETTINGS);
     newUserInputElem.value = '';
     existingUserInputElem.value = '';
-    settingsAutoLockElem.value = dataModel.autoLockTimeout;
+    settingsAutoLockElem.value = activeVault && activeVault.metadata.autoLockTimeout;
     // Focus the default field.
     if (HAS_PHYSICAL_KEYBOARD) {
       switch (newState) {
@@ -125,34 +137,36 @@ function updateUiState(forceState) {
     curUiState = newState;
   }
   if (curUiState == UiState.EDITING) {
-    editViewTextAreaElem.value = dataModel.unencryptedData;
-    editViewLastSavedElem.innerText = dataModel.lastSaved.toString().replace(/ GMT.*/, '');
-    editViewCharCountElem.innerText = dataModel.unencryptedData.length;
+    editViewLastSavedElem.innerText = new Date(activeVault.lastSaved).toString().replace(/ GMT.*/, '');
+    editViewTextAreaElem.value = activeCompartment.unencryptedData;
+    editViewCharCountElem.innerText = activeCompartment.unencryptedData.length;
   }
   if (curUiState == UiState.SETTINGS) {
     var curPassword = settingsExistingPasswordElem.value;
     settingsExistingPasswordElem.classList.remove('password-input-correct');
     settingsExistingPasswordElem.classList.remove('password-input-wrong');
-    if (curPassword == dataModel.password) {
+    if (curPassword == rootModel.password) {
       settingsExistingPasswordElem.classList.add('password-input-correct');
     } else if (curPassword) {
       settingsExistingPasswordElem.classList.add('password-input-wrong');
     }
-    settingsChangePasswordBtnElem.disabled = !(curPassword == dataModel.password && settingsNewPasswordElem.value);
+    settingsChangePasswordBtnElem.disabled = !(curPassword == rootModel.password && settingsNewPasswordElem.value);
   }
 }
 
 function flushChanges(autoSave, resetAfter, e) {
-  if (dataModel.unencryptedData != editViewTextAreaElem) {
+  if (activeCompartment.unencryptedData != editViewTextAreaElem.value || resetAfter) {
     console.log('flush from event: ' + (e.type || e));
-    dataModel.unencryptedData = editViewTextAreaElem.value;
+    activeCompartment.unencryptedData = editViewTextAreaElem.value;
     updateUiState();
     if (autoSave) {
-      dataModel.autoSave();
+      activeVault.autoSave();
     } else {
-      dataModel.save(function() {
+      activeVault.save(function() {
         if (resetAfter) {
-          dataModel.reset();
+          activeCompartment = null;
+          activeVault.lock();
+          // updateUiState called by onsave handler.
         }
       });
     }
@@ -173,9 +187,11 @@ function resizeWindow(newWidth, newHeight) {
 
 function resetAutoLock() {
   clearTimeout(autoLockTimerId);
-  document.body.classList.remove('auto-lock-fade');
-  if (dataModel.autoLockTimeout > 0) {
-    autoLockTimerId = setTimeout(onAutoLockBegin, dataModel.autoLockTimeout * 1000);
+  if (activeVault && activeCompartment) {
+    document.body.classList.remove('auto-lock-fade');
+    if (activeVault.metadata.autoLockTimeout > 0) {
+      autoLockTimerId = setTimeout(onAutoLockBegin, activeVault.metadata.autoLockTimeout * 1000);
+    }
   }
 }
 
@@ -196,17 +212,31 @@ function onExistingPasswordSubmit(e) {
   if (!password) {
     return;
   }
-  dataModel.password = password;
-  dataModel.load(function() {
-    existingUserInputElem.blur();
-    updateUiState();
-  }, function() {
-    setTimeout(function() {
-      existingUserLockElem.classList.add('wrong-pass-anim');
-      existingUserInputElem.select();
-    }, 0);
-    existingUserInputElem.focus();
+
+  var firstCompartment = activeVault.compartments[0];
+  firstCompartment.unlock(password, function() {
+    if (firstCompartment.unencryptedData !== null) {
+      activeVault.hash = password;
+      activeCompartment = firstCompartment;
+      existingUserInputElem.blur();
+      updateUiState();
+    } else {
+      setTimeout(function() {
+        existingUserLockElem.classList.add('wrong-pass-anim');
+        existingUserInputElem.select();
+      }, 0);
+      existingUserInputElem.focus();
+    }
   });
+}
+
+function selectVault(v) {
+  activeVault = v;
+  activeVault.onSave = updateUiState;
+  if (v.compartments[0].unencryptedData !== null) {
+    activeCompartment = v.compartments[0];
+  }
+  updateUiState();
 }
 
 function onNewPasswordSubmit(e) {
@@ -216,20 +246,21 @@ function onNewPasswordSubmit(e) {
   if (!password) {
     return;
   }
-  dataModel.fileName = 'file1';
-  dataModel.password = password;
-  dataModel.save();
+  // TODO: Hash the password instead of using it directly.
+  rootModel.createVault(password, function(v) {
+    selectVault(v);
+  });
 }
 
 function onChangeAutoLock() {
-  dataModel.autoLockTimeout = +settingsAutoLockElem.value;
-  dataModel.save();
+  activeVault.metadata.autoLockTimeout = +settingsAutoLockElem.value;
+  activeVault.save();
   resetAutoLock();
 }
 
 function onChangePassword() {
-  dataModel.password = settingsNewPasswordElem.value;
-  dataModel.save();
+  activeVault.hash = settingsNewPasswordElem.value;
+  activeVault.save();
   settingsNewPasswordElem.value = settingsExistingPasswordElem.value = '';
   settingsChangePasswordBtnElem.disabled = true;
   settingsChangePasswordSectionElem.classList.add('change-password-anim');
@@ -241,11 +272,11 @@ function onBoundsChanged() {
   }
 }
 
-function onStorageChanged(changes, areaName) {
-  // TODO
-}
-
 function registerEvents() {
+  logInFailButtonElem.onclick = function() {
+    rootModel.scanFileSystem();
+  };
+
   newUserFormElem.onsubmit = onNewPasswordSubmit;
   newUserInputElem.oninput = function() {
     newUserSubmitElem.disabled = !newUserInputElem.value;
@@ -292,11 +323,9 @@ function registerEvents() {
 
   wnd.onClosed.addListener(flushChanges.bind(null, false, true, 'closed'));
   wnd.onBoundsChanged.addListener(onBoundsChanged);
-  chrome.storage.onChanged.addListener(onStorageChanged);
-  dataModel.onsave = updateUiState;
   document.body.addEventListener('webkitTransitionEnd', onBodyTransitionEnd, false);
 
-  if (window.cordova) {
+  if (chrome.mobile) {
     new FastClick(document.body);
   }
 }
@@ -306,8 +335,16 @@ function init() {
     document.body.classList.add('ios');
   }
   registerEvents();
+  //rootModel.onModelUpdated = updateUiState;
   updateUiState();
   resetAutoLock();
+  if (rootModel.vaults.length) {
+    rootModel.vaults[0].load(function() {
+      rootModel.vaults[0].compartments[0].load(function() {
+          selectVault(rootModel.vaults[0]);
+      });
+    });
+  }
 }
 
 init();

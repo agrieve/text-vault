@@ -11,6 +11,7 @@ html {
 body {
   font-size: 13pt;
   font-family: helvetica, arial;
+  background: red;
 }
 
 img {
@@ -74,7 +75,7 @@ img {
   opacity: 0;
 }
 
-#new-user, #existing-user, #settings-view {
+#new-user, #existing-user, #settings-view, #log-in-failure-view, #syncing-view {
   text-align:center;
 }
 

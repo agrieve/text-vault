@@ -12,14 +12,15 @@
   "app": {
     "background": {
       "scripts": [
-        "background.js",
+        "datamodel.js",
         "third_party/aes.js",
-        "datamodel.js"
+        "background.js"
       ]
     }
   },
   "permissions": [
     "storage",
-    "syncFileSystem"
+    "syncFileSystem",
+    "unlimitedStorage"
   ]
 }

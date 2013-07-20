@@ -7,11 +7,21 @@
 <body class="abs_stretch vbox">
   <div class="title">Text Vault</div>
   <img src="third_party/lock.svg" class="lock-img" style="display:none">
-  <div id="new-user" class="flex1 relative" style="display:none">
-    <div>No data present.</div>
+  <div id="log-in-failure-view" class="flex1 vbox" style="display:none; line-height: 2em">
+    <div>Welcome to Text Vault!</div>
+    <div>To get started, log into Chrome.</div>
+    <button>Try Again</button>
+  </div>
+  <div id="syncing-view" class="flex1 vbox" style="display:none; line-height: 2em">
+    <div>Welcome to Text Vault!</div>
+    <div>Initializing...</div>
+  </div>
+  <div id="new-user" class="flex1 vbox" style="display:none; line-height: 2em">
+    <div>Welcome to Text Vault!</div>
+    <div>To get started, create a password.</div>
     <form>
-      <div>Enter a password: <input id="new-password" class="password-input" autocorrect=off autocapitalize=off></div>
-      <div><input type="submit" value="Done"></div>
+      <div>Password: <input id="new-password" class="password-input" autocorrect=off autocapitalize=off></div>
+      <div><input type="submit" value="Create"></div>
     </form>
   </div>
   <div id="existing-user" class="flex1 relative" style="display:none">
