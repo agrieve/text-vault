@@ -70,7 +70,7 @@ function updateUiState(forceState) {
   if (!window) {
     return;
   }
-
+  
   var firstTimeUser = !rootModel.vaults.length;
   var hasPassword = activeVault && !!activeVault.hash;
   var newState = rootModel.logInFailure ? UiState.LOG_IN_FAILURE :
@@ -87,6 +87,7 @@ function updateUiState(forceState) {
     newState = forceState;
   }
   if (curUiState != newState) {
+    console.log('UI State Change: ' + curUiState + '->' + newState);
     setVisible(existingUserLockElem, newState == UiState.EXISTING);
     if (newState == UiState.EDITING && curUiState == UiState.EXISTING) {
       existingUserLockElem.classList.add('correct-pass-anim');
@@ -145,12 +146,12 @@ function updateUiState(forceState) {
     var curPassword = settingsExistingPasswordElem.value;
     settingsExistingPasswordElem.classList.remove('password-input-correct');
     settingsExistingPasswordElem.classList.remove('password-input-wrong');
-    if (curPassword == rootModel.password) {
+    if (activeCompartment.isCorrectPassword(curPassword)) {
       settingsExistingPasswordElem.classList.add('password-input-correct');
     } else if (curPassword) {
       settingsExistingPasswordElem.classList.add('password-input-wrong');
     }
-    settingsChangePasswordBtnElem.disabled = !(curPassword == rootModel.password && settingsNewPasswordElem.value);
+    settingsChangePasswordBtnElem.disabled = !(settingsNewPasswordElem.value);
   }
 }
 
@@ -158,7 +159,7 @@ function flushChanges(autoSave, resetAfter, e) {
   if (activeCompartment.unencryptedData != editViewTextAreaElem.value || resetAfter) {
     console.log('flush from event: ' + (e.type || e));
     activeCompartment.unencryptedData = editViewTextAreaElem.value;
-    updateUiState();
+//    updateUiState();
     if (autoSave) {
       activeVault.autoSave();
     } else {
@@ -330,21 +331,28 @@ function registerEvents() {
   }
 }
 
+function onRootModelUpdate() {
+  if (!activeVault && rootModel.vaults.length) {
+    rootModel.vaults[0].load(function() {
+      rootModel.vaults[0].compartments[0].load(function() {
+        selectVault(rootModel.vaults[0]);
+      });
+    });
+  } else {
+    // Go to new user screen.
+    updateUiState();
+  }
+}
+
 function init() {
   if (chrome.mobile) {
     document.body.classList.add('ios');
   }
   registerEvents();
-  rootModel.onModelUpdated = updateUiState;
   updateUiState();
+  rootModel.onModelUpdated = onRootModelUpdate;
+  onRootModelUpdate();
   resetAutoLock();
-  if (rootModel.vaults.length) {
-    rootModel.vaults[0].load(function() {
-      rootModel.vaults[0].compartments[0].load(function() {
-          selectVault(rootModel.vaults[0]);
-      });
-    });
-  }
 }
 
 init();

@@ -224,6 +224,15 @@ Compartment.prototype.lock = function() {
   this.unencryptedData = null;
 };
 
+Compartment.prototype.isCorrectPassword = function(hash) {
+  try {
+      var decryptedText = CryptoJS.AES.decrypt(this._encryptedData, hash).toString(CryptoJS.enc.Utf8);
+      return (decryptedText.slice(0, DATA_PREFIX.length) == DATA_PREFIX);
+  } catch(e) {
+  }
+  return false;
+};
+
 Compartment.prototype.unlock = function(hash, callback) {
   try {
       var decryptedText = CryptoJS.AES.decrypt(this._encryptedData, hash).toString(CryptoJS.enc.Utf8);
@@ -240,7 +249,8 @@ Compartment.prototype.save = function(hash, callback) {
   if (this.unencryptedData === null) {
     this.unencryptedData = '';
   }
-  this._encryptedData = CryptoJS.AES.encrypt(DATA_PREFIX + this.unencryptedData, hash);
+  // _encryptedData is a Base64 string.
+  this._encryptedData = CryptoJS.AES.encrypt(DATA_PREFIX + this.unencryptedData, hash).toString();
   // 1 is the version.
   var fileData = '1 ' + this._encryptedData;
   writeTextFile(this.fileEntry, fileData, callback);
