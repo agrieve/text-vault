@@ -12,6 +12,7 @@
   "app": {
     "background": {
       "scripts": [
+        "filemonitor.js",
         "datamodel.js",
         "third_party/aes.js",
         "background.js"

@@ -69,6 +69,7 @@ function RootModel() {
   this.scanInProgress = false;
   this._fsRoot = null;
   this.onModelUpdated = null;
+  this.fileMonitor = new FileMonitor();
 }
 
 RootModel.prototype.createVault = function(hash, callback) {
@@ -81,7 +82,7 @@ RootModel.prototype.createVault = function(hash, callback) {
   }
   me._fsRoot.getFile('vault-' + vaultId + '.meta', {create: true}, function(vaultFileEntry) {
     me._fsRoot.getFile('compartment-' + vaultId + '-' + compartmentId + '.data', {create: true}, function(compartmentFileEntry) {
-      var newCompartment = new Compartment(compartmentFileEntry);
+      var newCompartment = new Compartment(compartmentFileEntry, me.fileMonitor);
       var newVault = new Vault(vaultId, vaultFileEntry, [newCompartment]);
       newVault.hash = hash;
       newVault.save(function() {
@@ -140,7 +141,7 @@ RootModel.prototype.scanFileSystem = function() {
     me._fsRoot = fs.root;
     getAllFileEntries(fs.root, function(allEntries) {
       if (allEntries) {
-        me.vaults = createVaultsFromEntries(allEntries);
+        me.vaults = createVaultsFromEntries(allEntries, me.fileMonitor);
         var numLeft = me.vaults.length + 1;
         function onLoaded() {
           if (!--numLeft) {
@@ -160,7 +161,7 @@ RootModel.prototype.scanFileSystem = function() {
   });
 };
 
-function createVaultsFromEntries(entries) {
+function createVaultsFromEntries(entries, fileMonitor) {
 
   function scan(pattern, func) {
     for (var i = 0, entry; entry = entries[i]; ++i) {
@@ -202,7 +203,7 @@ function createVaultsFromEntries(entries) {
       var compartmentList = [];
       for (var compartmentId in entry.compartmentMap) {
         compEntry = entry.compartmentMap[compartmentId];
-        compartmentList.push(new Compartment(compEntry.dataEntry));
+        compartmentList.push(new Compartment(compEntry.dataEntry, fileMonitor));
       }
       if (!compEntry) {
         console.warn('Found vault is missing one or more files: ' + vaultId);
@@ -214,10 +215,11 @@ function createVaultsFromEntries(entries) {
   return vaults;
 }
 
-function Compartment(fileEntry) {
+function Compartment(fileEntry, fileMonitor) {
   this.fileEntry = fileEntry;
   this._encryptedData = null;
   this.lock();
+  fileMonitor.addWatch(fileEntry, this._onReceivedSyncChange.bind(this));
 }
 
 Compartment.prototype.lock = function() {
@@ -245,7 +247,7 @@ Compartment.prototype.unlock = function(hash, callback) {
 };
 
 Compartment.prototype.save = function(hash, callback) {
-  // New component.
+  // New compartment.
   if (this.unencryptedData === null) {
     this.unencryptedData = '';
   }
@@ -268,6 +270,8 @@ Compartment.prototype.load = function(callback) {
   });
 };
 
+Compartment.prototype._onReceivedSyncChange = function() {
+};
 
 function Vault(id, metaFileEntry, compartments) {
   this.id = id;

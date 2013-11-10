@@ -35,7 +35,7 @@ var editViewElem = $('#edit-view');
 var editViewLockButtonElem = $('#btn-lock');
 var editViewTextAreaElem = $('#edit-view textarea');
 var editViewGearElem = $('.gear-img');
-var editViewLastSavedElem = $('#last-saved');
+var editViewSyncStatusElem = $('#sync-status');
 var editViewCharCountElem = $('#char-count');
 var flipContainerElem = $('#flip-container');
 var settingsAutoLockElem = $('#autolock-select');
@@ -138,7 +138,7 @@ function updateUiState(forceState) {
     curUiState = newState;
   }
   if (curUiState == UiState.EDITING) {
-    editViewLastSavedElem.innerText = new Date(activeVault.lastSaved).toString().replace(/ GMT.*/, '');
+    editViewSyncStatusElem.innerText = rootModel.fileMonitor.state;
     editViewTextAreaElem.value = activeCompartment.unencryptedData;
     editViewCharCountElem.innerText = activeCompartment.unencryptedData.length;
   }
@@ -351,6 +351,7 @@ function init() {
   registerEvents();
   updateUiState();
   rootModel.onModelUpdated = onRootModelUpdate;
+  rootModel.fileMonitor.onSyncStatusChange = updateUiState;
   onRootModelUpdate();
   resetAutoLock();
 }
