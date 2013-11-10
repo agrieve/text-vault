@@ -2,6 +2,16 @@
 
 var DATA_PREFIX = 'A5jwiqb';
 
+function requestFs(callback) {
+  var start = new Date();
+  // window.webkitRequestFileSystem(PERSISTENT, 50000, function(fs) {  
+  chrome.syncFileSystem.requestFileSystem(done);
+  function done(fs) {
+    console.log('requestFs took ' + (new Date - start) + 'ms');
+    callback(fs);
+  }
+}
+
 function throttleDecorator(obj, func, delay) {
   var timerId = null;
   function unthrottled() {
@@ -83,14 +93,43 @@ RootModel.prototype.createVault = function(hash, callback) {
   }, getFileFail);
 };
 
+function getAllFileEntries(fsRoot, callback) {
+  var reader = fsRoot.createReader();
+  var allEntries = [];
+  reader.readEntries(readerGood, readerBad);
+  function readerGood(someEntries) {
+    if (someEntries.length) {
+      allEntries.push.apply(allEntries, someEntries);
+      reader.readEntries(readerGood, readerBad);
+    } else {
+      callback(allEntries);
+    }
+  }
+  function readerBad() {
+    console.error('Failed to read directory entries');
+    callback();
+  };
+}
+
+// For debugging only!
+window.deleteAllData = function() {
+  requestFs(function(fs) {
+    getAllFileEntries(fs.root, function(entries) {
+      entries.forEach(function(e) {
+        console.log('Deleting: ' + e.fullPath);
+        e.remove(function(){});
+      });
+    });
+  });
+}
+
 RootModel.prototype.scanFileSystem = function() {
   if (this.scanInProgress) return;
   this.scanInProgress = true;
   this.logInFailure = false;
   maybeCall(this.onModelUpdated);
   var me = this;
-  chrome.syncFileSystem.requestFileSystem(function(fs) {
-  // window.webkitRequestFileSystem(PERSISTENT, 50000, function(fs) {
+  requestFs(function(fs) {
     if (!fs) {
       me.logInFailure = true;
       console.error('syncFileSystem failed to open: ' + (chrome.runtime.lastError && chrome.runtime.lastError.message));
@@ -99,14 +138,8 @@ RootModel.prototype.scanFileSystem = function() {
       return;
     }
     me._fsRoot = fs.root;
-    var reader = fs.root.createReader();
-    var allEntries = [];
-    reader.readEntries(readerGood, readerBad);
-    function readerGood(someEntries) {
-      if (someEntries.length) {
-        allEntries.push.apply(allEntries, someEntries);
-        reader.readEntries(readerGood, readerBad);
-      } else {
+    getAllFileEntries(fs.root, function(allEntries) {
+      if (allEntries) {
         me.vaults = createVaultsFromEntries(allEntries);
         var numLeft = me.vaults.length + 1;
         function onLoaded() {
@@ -119,13 +152,11 @@ RootModel.prototype.scanFileSystem = function() {
           v.load(onLoaded);
         });
         onLoaded();
+      } else {
+        me.scanInProgress = false;
+        maybeCall(me.onModelUpdated);
       }
-    }
-    function readerBad() {
-      console.error('Failed to read directory entries');
-      me.scanInProgress = false;
-      maybeCall(me.onModelUpdated);
-    };
+    });
   });
 };
 
@@ -139,7 +170,6 @@ function createVaultsFromEntries(entries) {
       }
     }
   }
-  //entries.forEach(function(e) {e.remove(function(){})});
 
   // vault-(vaultId).meta
   var VAULT_PATTERN = /vault-([a-z0-9]+)\.meta/;
