@@ -335,7 +335,7 @@ function init() {
     document.body.classList.add('ios');
   }
   registerEvents();
-  //rootModel.onModelUpdated = updateUiState;
+  rootModel.onModelUpdated = updateUiState;
   updateUiState();
   resetAutoLock();
   if (rootModel.vaults.length) {

@@ -195,9 +195,12 @@ Compartment.prototype.lock = function() {
 };
 
 Compartment.prototype.unlock = function(hash, callback) {
-  var decryptedText = CryptoJS.AES.decrypt(this._encryptedData, hash).toString(CryptoJS.enc.Utf8);
-  if (decryptedText.slice(0, DATA_PREFIX.length) == DATA_PREFIX) {
-    this.unencryptedData = decryptedText.slice(DATA_PREFIX.length);
+  try {
+      var decryptedText = CryptoJS.AES.decrypt(this._encryptedData, hash).toString(CryptoJS.enc.Utf8);
+      if (decryptedText.slice(0, DATA_PREFIX.length) == DATA_PREFIX) {
+        this.unencryptedData = decryptedText.slice(DATA_PREFIX.length);
+      }
+  } catch(e) {
   }
   callback();
 };
